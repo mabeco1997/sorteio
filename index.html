@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Sorteio de Grupos</title>
+</head>
+<body>
+
+<h2>Sorteio de Grupos</h2>
+
+<p>Nomes (um por linha):</p>
+<textarea id="names" rows="10" cols="40"></textarea>
+
+<p>Pessoas por grupo: <input type="number" id="sz" value="3" min="2" max="30"></p>
+
+<p id="preview"></p>
+
+<button onclick="doSort()">Sortear</button>
+<button onclick="doSort()" id="btn-novo" disabled>Novo sorteio</button>
+
+<div id="results"></div>
+
+<script>
+  function getNames() {
+    return document.getElementById('names').value
+      .split('\n').map(s => s.trim()).filter(Boolean);
+  }
+
+  function getSz() {
+    return Math.max(2, parseInt(document.getElementById('sz').value) || 3);
+  }
+
+  // Sempre grupos de tamanho s, sobra vai +1 em alguns grupos
+  function calcDist(n, s) {
+    const g = Math.floor(n / s);   // numero de grupos completos
+    const resto = n % s;           // sobra de pessoas
+    // resto grupos ficam com s+1, o restante fica com s
+    return Array.from({length: g}, (_, i) => i < resto ? s + 1 : s);
+  }
+
+  function updatePreview() {
+    const n = getNames().length;
+    const s = getSz();
+    if (!n) { document.getElementById('preview').textContent = ''; return; }
+    const dist = calcDist(n, s);
+    const ex = dist.filter(d => d > s).length;
+    let t = n + ' estudantes — ' + dist.length + ' grupos de ' + s;
+    if (ex) t += ' (' + ex + ' com ' + (s+1) + ')';
+    document.getElementById('preview').textContent = t;
+  }
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length-1; i > 0; i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  function doSort() {
+    const n = getNames();
+    if (n.length < 2) { alert('Adicione ao menos 2 estudantes.'); return; }
+    const s = getSz();
+    if (n.length < s) { alert('Poucos estudantes para formar um grupo de ' + s + '.'); return; }
+    const sh = shuffle(n);
+    const dist = calcDist(sh.length, s);
+    const groups = [];
+    let idx = 0;
+    for (const d of dist) { groups.push(sh.slice(idx, idx+d)); idx += d; }
+
+    let html = '<hr><p><b>' + groups.length + ' grupos — ' + sh.length + ' estudantes</b></p>';
+    groups.forEach((g, gi) => {
+      html += '<p><b>Grupo ' + (gi+1) + (g.length > s ? ' (+1)' : '') + '</b><br>';
+      html += g.map((name, mi) => (mi+1) + '. ' + name).join('<br>');
+      html += '</p>';
+    });
+
+    document.getElementById('results').innerHTML = html;
+    document.getElementById('btn-novo').disabled = false;
+  }
+
+  document.getElementById('names').addEventListener('input', updatePreview);
+  document.getElementById('sz').addEventListener('input', updatePreview);
+</script>
+</body>
+</html>
